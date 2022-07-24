@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(const MyApp());
@@ -7,109 +9,363 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Flutter IndexedStack',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Flutter IndexedStack'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
+
+  const MyHomePage({
+    Key? key,
+    required this.title,
+  }) : super(key: key);
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final listCategories = <String>[
+    'Peminjaman Dana',
+    'Perjalanan Dinas',
+    'Pengajuan Karyawan Baru',
+  ];
+  final listJobPositions = <String>[
+    'Product Engineer',
+    'Account Manager',
+    'Copywriter',
+  ];
+  final controllerCategory = TextEditingController();
+  final controllerJobPosition = TextEditingController();
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  int? indexCategory;
+  var selectedCategory = '';
+  var widthScreen = 0.0;
+  var heightScreen = 0.0;
+  var selectedJobPosition = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQueryData = MediaQuery.of(context);
+    widthScreen = mediaQueryData.size.width;
+    heightScreen = mediaQueryData.size.height;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+      ),
+      body: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            buildWidgetTextFieldCategory(),
+            indexCategory == null
+                ? Container()
+                : IndexedStack(
+                    index: indexCategory,
+                    children: [
+                      buildWidgetInputPeminjamanDana(),
+                      buildWidgetInputPerjalananDinas(),
+                      buildWidgetInputPengajuanKaryawanBaru(),
+                    ],
+                  ),
+            const SizedBox(height: 16),
+            buildWidgetButtonSubmit(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildWidgetButtonSubmit() {
+    return SizedBox(
+      width: double.infinity,
+      height: 42,
+      child: ElevatedButton(
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Data berhasil dikirimkan'),
+            ),
+          );
+        },
+        child: const Text('Kirim'),
+      ),
+    );
+  }
+
+  Widget buildWidgetInputPeminjamanDana() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: TextFormField(
+        decoration: const InputDecoration(
+          labelText: 'Jumlah',
+          isDense: true,
+          prefix: Text('Rp.'),
+        ),
+        keyboardType: TextInputType.number,
+        minLines: 1,
+        maxLines: 1,
+        inputFormatters: [
+          CurrencyIndonesiaInputFormatter(),
+        ],
+      ),
+    );
+  }
+
+  Widget buildWidgetInputPerjalananDinas() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: TextFormField(
+        decoration: const InputDecoration(
+          labelText: "Lokasi",
+          isDense: true,
+        ),
+        keyboardType: TextInputType.text,
+        minLines: 1,
+        maxLines: 1,
+      ),
+    );
+  }
+
+  Widget buildWidgetInputPengajuanKaryawanBaru() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: TextFormField(
+        controller: controllerJobPosition,
+        decoration: const InputDecoration(
+          labelText: 'Posisi pekerjaan',
+          isDense: true,
+          suffixIcon: Icon(
+            Icons.arrow_drop_down,
+          ),
+        ),
+        readOnly: true,
+        onTap: () async {
+          final chooseJobPosition = await showDialog<String>(
+            context: context,
+            builder: (context) {
+              return WidgetDialogChoose(
+                widthScreen: widthScreen,
+                heightScreen: heightScreen,
+                title: 'Pilih Posisi Pekerjaan',
+                listOptions: listJobPositions,
+                defaultSelected: selectedJobPosition,
+              );
+            },
+          );
+          if (chooseJobPosition != null) {
+            setState(() {
+              selectedJobPosition = chooseJobPosition;
+              controllerJobPosition.text = selectedJobPosition;
+            });
+          }
+          unfocus();
+        },
+      ),
+    );
+  }
+
+  Widget buildWidgetTextFieldCategory() {
+    return TextFormField(
+      controller: controllerCategory,
+      decoration: const InputDecoration(
+        labelText: 'Kategori',
+        isDense: true,
+        suffixIcon: Icon(
+          Icons.arrow_drop_down,
+        ),
+      ),
+      readOnly: true,
+      onTap: () async {
+        final chooseCategory = await showDialog<String>(
+          context: context,
+          builder: (context) {
+            return WidgetDialogChoose(
+              widthScreen: widthScreen,
+              heightScreen: heightScreen,
+              title: 'Pilih Kategori',
+              listOptions: listCategories,
+              defaultSelected: selectedCategory,
+            );
+          },
+        );
+        if (chooseCategory != null) {
+          setState(() {
+            controllerJobPosition.clear();
+            selectedJobPosition = '';
+            selectedCategory = chooseCategory;
+            indexCategory = listCategories.indexWhere((element) => element == selectedCategory);
+            controllerCategory.text = selectedCategory;
+          });
+        }
+        unfocus();
+      },
+    );
+  }
+
+  void unfocus() {
+    final primaryFocus = FocusManager.instance.primaryFocus;
+    if (primaryFocus != null) {
+      primaryFocus.unfocus();
+    }
+  }
+}
+
+class WidgetDialogChoose extends StatefulWidget {
+  final double widthScreen;
+  final double heightScreen;
+  final String title;
+  final List<String> listOptions;
+  final String? defaultSelected;
+
+  const WidgetDialogChoose({
+    Key? key,
+    required this.widthScreen,
+    required this.heightScreen,
+    required this.title,
+    required this.listOptions,
+    required this.defaultSelected,
+  }) : super(key: key);
+
+  @override
+  State<WidgetDialogChoose> createState() => _WidgetDialogChooseState();
+}
+
+class _WidgetDialogChooseState extends State<WidgetDialogChoose> {
+  String? selectedCategory;
+
+  @override
+  void setState(VoidCallback fn) {
+    if (mounted) {
+      super.setState(fn);
+    }
+  }
+
+  @override
+  void initState() {
+    selectedCategory = widget.defaultSelected;
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
+    final children = <Widget>[];
+    final listWidgetRadioButton = <Widget>[];
+    for (final itemCategory in widget.listOptions) {
+      final widgetRadioButton = Radio<String>(
+        value: itemCategory,
+        groupValue: selectedCategory,
+        onChanged: (value) => setState(() => selectedCategory = itemCategory),
+      );
+      final widgetText = Expanded(
+        child: Text(
+          itemCategory,
+          style: Theme.of(context).textTheme.caption?.copyWith(
+                color: Colors.grey[900],
+              ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+      final widgetItem = GestureDetector(
+        onTap: () => setState(() => selectedCategory = itemCategory),
+        child: Row(
+          children: [
+            widgetRadioButton,
+            widgetText,
           ],
         ),
+      );
+      listWidgetRadioButton.add(widgetItem);
+    }
+    children.addAll(listWidgetRadioButton);
+
+    return AlertDialog(
+      title: Text(
+        widget.title,
+        textAlign: TextAlign.start,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      titleTextStyle: Theme.of(context).textTheme.subtitle2?.copyWith(
+            fontSize: 16,
+          ),
+      titlePadding: const EdgeInsets.only(
+        left: 16,
+        top: 16,
+      ),
+      contentPadding: const EdgeInsets.all(16),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: widget.widthScreen / 1.2,
+            height: widget.heightScreen / 2,
+            child: ListView(
+              shrinkWrap: true,
+              children: children,
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: buildWidgetButtonCancel(),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: buildWidgetButtonOk(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildWidgetButtonCancel() {
+    return TextButton(
+      onPressed: () => Navigator.pop(context),
+      child: const Text('Batal'),
+    );
+  }
+
+  Widget buildWidgetButtonOk() {
+    return TextButton(
+      onPressed: selectedCategory == null || selectedCategory!.isEmpty
+          ? null
+          : () {
+              Navigator.pop(context, selectedCategory);
+            },
+      child: const Text('OK'),
+    );
+  }
+}
+
+class CurrencyIndonesiaInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return const TextEditingValue(
+        text: '0',
+        selection: TextSelection.collapsed(offset: 1),
+      );
+    } else if (newValue.selection.baseOffset == 0) {
+      return newValue;
+    }
+    var newNumberValue = double.parse(newValue.text.replaceAll(',', '').replaceAll('.', ''));
+    final formatter = NumberFormat('#,###');
+    final newText = formatter.format(newNumberValue).replaceAll(',', '.');
+    return newValue.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
     );
   }
 }
